@@ -1,0 +1,86 @@
+Tivoli Framework Gateway hung in boot: IBM Technote ID: 1252849
+
+Gateway hung in boot with status=31
+
+Technote (troubleshooting)
+
+Problem(Abstract)
+
+wgateway shows a gateway in "b" status (boot status) and it never
+changes with a status=31 message in the gatelog.
+
+See the Cause section for log details identifying this specify hang.
+Cause
+
+NAT device between the TMR and Gateway is interfering with IOM communications.
+
+In this case you will see this pair of lines the epmgrlog:
+
+<date><time> 4 0104EC38: gateway_is_booting:
+2008126710.1.578#TMF_Gateway::Gateway#
+<date><time> 4 0104EC38: iom query 2008126710.1.578 iom key:
+169738558I1051If4af78f4af78 algczar
+
+This is what it looks like for a healthy Gateway:
+
+<date><time> 4 0x816a148: gateway_is_booting:
+2008126710.1.578#TMF_Gateway::Gateway#
+<date><time> 4 0x816a148: iom query 2008126710.1.578 iom key:
+3232249987I1024I81e01d081e01d0 algczar
+<date><time> 4 0x816a148: iom query done 2008126710.1.578#TMF_Gateway::Gateway#
+<date><time> 4 0x816a148: gateway_is_booting: done
+2008126710.1.578#TMF_Gateway::Gateway#
+
+There should have been a response to the query almost immediately.
+
+
+This is what you should look for the gatelog:
+
+<date><time> 5 0038C6F0: boot: get epcache from EpMgr
+<date><time> 2 0038C6F0: boot: retry epcache_open 10
+<date><time> 5 0038C6F0: boot: get epcache from EpMgr
+<date><time> 0 00F49BC0: gwmeth: method status failed - status=31
+<date><time> 0 00F47EA8: gwmeth: method status failed - status=31
+<date><time> 2 0038C6F0: boot: retry epcache_open 10
+<date><time> 5 0038C6F0: boot: get epcache from EpMgr
+<date><time> 2 0038C6F0: boot: retry epcache_open 10
+<date><time> 5 0038C6F0: boot: get epcache from EpMgr
+<date><time> 0 00F49BC0: gwmeth: method gw_generic_method failed - status=31
+<date><time> 0 00F47EA8: gwmeth: method status failed - status=31
+<date><time> 0 00F49BC0: gwmeth: gateway SHUTDOWN received
+<date><time> 0 00F49BC0: gateway_shutdown: Shutdown Repeater
+<date><time> 0 00F49BC0: gateway_shutdown: Sync epact.bdb with epcache
+<date><time> 0 00F49BC0: ----------- GATEWAY SHUTDOWN CALLED ------------
+
+Resolving the problem
+
+1) On the TMR enter:
+
+
+odadmin set_allow_NAT TRUE
+odadmin set_iom_by_name TRUE 1
+odadmin set_iom_by_name TRUE <OD>
+odadmin reexec 1
+odadmin reexec <OD>
+
+Where <OD> is the object dispatcher number of the gateway. That is,
+the middle number of the OID of the Gateway. You can enter "wlookup
+-ar Gateway" to see the OIDs of all the Gateways to get the OD.
+
+2) Enter "odadmin" and "odadmin odinfo <OD>" to make sure it says
+"ALLOW_NAT = TRUE" and "Perform local hostname lookup for IOM
+connections = TRUE" for both the TMR and Gateway.
+
+3) Now stop and restart the Gateway with these commands. This time is
+will go from boot status to up status after a short time. The last
+command you can use repeatedly to check the status of the gateways.
+
+wgateway <GW> stop
+wgateway <GW> start
+wgateway
+
+Product Alias/Synonym
+
+Framework
+
+
